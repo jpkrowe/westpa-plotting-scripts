@@ -72,6 +72,37 @@ scatter_prob_pcoord.py west.h5 --linear
 
 ---
 
+### plot_extrema_pcoord.py
+
+Plot the minimum or maximum progress coordinate value at each iteration as a line plot. Useful for tracking how far the ensemble has explored along a coordinate over the course of a simulation.
+
+```bash
+# Min pcoord (dim 0) across all iterations (default)
+plot_extrema_pcoord.py west.h5
+
+# Max pcoord instead
+plot_extrema_pcoord.py west.h5 --mode max
+
+# Track a different dimension
+plot_extrema_pcoord.py west.h5 --dims 1
+
+# Restrict to an iteration range
+plot_extrema_pcoord.py west.h5 --first-iter 10 --last-iter 200
+
+# Custom output
+plot_extrema_pcoord.py west.h5 --mode max --output max_pcoord.png
+```
+
+| Option | Description |
+|--------|-------------|
+| `--mode, -m` | `min` or `max` (default: `min`) |
+| `--dims, -d` | Pcoord dimension to track (default: 0) |
+| `--first-iter` | First iteration to include (default: first available) |
+| `--last-iter` | Last iteration to include (default: latest complete) |
+| `--output, -o` | Output file path (default: auto-generated) |
+
+---
+
 ## Notes
 
 - All scripts auto-detect the latest complete iteration if `--iter` is not specified
