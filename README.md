@@ -74,7 +74,7 @@ scatter_prob_pcoord.py west.h5 --linear
 
 ### plot_extrema_pcoord.py
 
-Plot the minimum or maximum progress coordinate value at each iteration as a line plot. Useful for tracking how far the ensemble has explored along a coordinate over the course of a simulation.
+Plot the minimum and maximum progress coordinate values at each iteration as a line plot. Useful for tracking how far the ensemble has explored along a coordinate over the course of a simulation.
 
 ```bash
 # Min pcoord (dim 0) across all iterations (default)
@@ -95,12 +95,12 @@ plot_extrema_pcoord.py west.h5 --mode max --output max_pcoord.png
 
 | Option | Description |
 |--------|-------------|
-| `--mode, -m` | `min` or `max` (default: `min`) |
+| `--mode, -m` | 'both', `min` or `max` (default: `both`) |
 | `--dims, -d` | Pcoord dimension to track (default: 0) |
 | `--first-iter` | First iteration to include (default: first available) |
 | `--last-iter` | Last iteration to include (default: latest complete) |
 | `--output, -o` | Output file path (default: auto-generated) |
-
+| '--no-fit-curve' | Do not include a line-of-best-fit with each plot
 ---
 
 ## Notes
