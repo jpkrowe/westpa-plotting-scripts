@@ -38,7 +38,7 @@ def get_latest_complete_iteration(h5file):
     return None
 
 
-def plot_extrema_pcoord(h5_path, mode='both', dim=0, first_iter=None, last_iter=None, output=None):
+def plot_extrema_pcoord(h5_path, mode='both', dim=0, first_iter=None, last_iter=None, output=None, fit_curve=True):
     """
     Plot the min or max progress coordinate value at each iteration.
 
@@ -56,6 +56,8 @@ def plot_extrema_pcoord(h5_path, mode='both', dim=0, first_iter=None, last_iter=
         Last iteration to include (default: latest complete)
     output : str, optional
         Output file path. If None, auto-generates based on input file.
+    fit_curve : bool, optional
+        Whether to fit a straight line to the data. (default: True)
     """
     if mode == 'both':
         labels = ['min', 'max']
@@ -136,9 +138,17 @@ def plot_extrema_pcoord(h5_path, mode='both', dim=0, first_iter=None, last_iter=
 
             print(f"Pcoord {label} range: {extrema.min():.4f} to {extrema.max():.4f}")
 
-
+            if label == 'min':
+                color = 'red'
+            else:
+                color = 'steelblue'
             ax.plot(iterations, extrema, '-o',  markersize=3, linewidth=1,
-                alpha=0.8, label=label)
+                alpha=0.8, label=label, color=color)
+            if fit_curve:
+                p=np.poly1d(np.polyfit(iterations, extrema, 1))
+                ax.plot(iterations, p(iterations), label=f'{label} best fit', color=color)
+
+
 
     if mode == 'both':
         mode_label = "Both Extrema"
@@ -200,7 +210,8 @@ Examples:
                         help='Last iteration to include (default: latest complete)')
     parser.add_argument('--output', '-o', type=str, default=None,
                         help='Output file path (default: auto-generated)')
-
+    parser.add_argument('--no-fit-curve', action='store_false', 
+                        help='Dont fit a straight line to the curve (default: True)')
     args = parser.parse_args()
 
     plot_extrema_pcoord(
@@ -209,7 +220,8 @@ Examples:
         dim=args.dims,
         first_iter=args.first_iter,
         last_iter=args.last_iter,
-        output=args.output
+        output=args.output,
+        fit_curve=args.no_fit_curve
     )
 
 
