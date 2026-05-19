@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Plot the minimum or maximum progress coordinate value at each iteration
+Plot the minimum and maximum progress coordinate value at each iteration
 for a WESTPA weighted ensemble simulation.
 
 Usage:
-    plot_extrema_pcoord.py <west.h5> [--mode min|max] [--dims D] [--output FILE]
-    plot_extrema_pcoord.py <west.h5> --mode max --dims 1 --output extrema.png
+    plot_extrema_pcoord.py <west.h5> [--mode both|min|max] [--dims D] [--output FILE]
+    plot_extrema_pcoord.py <west.h5> --mode both --dims 1 --output extrema.png
 """
 
 import argparse
@@ -38,7 +38,7 @@ def get_latest_complete_iteration(h5file):
     return None
 
 
-def plot_extrema_pcoord(h5_path, mode='min', dim=0, first_iter=None, last_iter=None, output=None):
+def plot_extrema_pcoord(h5_path, mode='both', dim=0, first_iter=None, last_iter=None, output=None):
     """
     Plot the min or max progress coordinate value at each iteration.
 
@@ -47,7 +47,7 @@ def plot_extrema_pcoord(h5_path, mode='min', dim=0, first_iter=None, last_iter=N
     h5_path : str
         Path to the west.h5 file
     mode : str
-        'min' or 'max' (default: 'min')
+        'both', 'min' or 'max' (default: 'both')
     dim : int
         Pcoord dimension index to track (default: 0)
     first_iter : int, optional
@@ -57,8 +57,18 @@ def plot_extrema_pcoord(h5_path, mode='min', dim=0, first_iter=None, last_iter=N
     output : str, optional
         Output file path. If None, auto-generates based on input file.
     """
-    agg_func = np.min if mode == 'min' else np.max
-
+    if mode == 'both':
+        labels = ['min', 'max']
+        agg_funcs = [np.min, np.max]
+    elif mode == 'min':
+        agg_funcs == [np.min]
+        labels = ['min']
+    else:
+        agg_funcs == [np.max]
+        labels = ['max']
+    # Create plot
+    fig, ax = plt.subplots(figsize=(10, 6))
+   
     with h5py.File(h5_path, 'r') as f:
         iter_nums = get_iteration_range(f)
 
@@ -87,58 +97,61 @@ def plot_extrema_pcoord(h5_path, mode='min', dim=0, first_iter=None, last_iter=N
         print(f"Iterations: {iter_nums[0]} to {iter_nums[-1]} ({len(iter_nums)} total)")
         print(f"Mode: {mode}")
         print(f"Pcoord dimension: {dim}")
+        for agg_func, label in zip(agg_funcs, labels):
+            iterations = []
+            extrema = []
+            n_incomplete = 0
 
-        iterations = []
-        extrema = []
-        n_incomplete = 0
+            for iter_num in iter_nums:
+                iter_key = f'iter_{iter_num:08d}'
+                iter_grp = f['iterations'][iter_key]
 
-        for iter_num in iter_nums:
-            iter_key = f'iter_{iter_num:08d}'
-            iter_grp = f['iterations'][iter_key]
+                if 'pcoord' not in iter_grp or 'seg_index' not in iter_grp:
+                    continue
 
-            if 'pcoord' not in iter_grp or 'seg_index' not in iter_grp:
-                continue
+                pcoord = iter_grp['pcoord'][:]  # (n_segs, n_timepoints, n_dims)
 
-            pcoord = iter_grp['pcoord'][:]  # (n_segs, n_timepoints, n_dims)
+                # Validate dimension
+                if dim >= pcoord.shape[2]:
+                    print(f"Error: Dimension {dim} requested but pcoord only has "
+                        f"{pcoord.shape[2]} dimensions", file=sys.stderr)
+                    sys.exit(1)
 
-            # Validate dimension
-            if dim >= pcoord.shape[2]:
-                print(f"Error: Dimension {dim} requested but pcoord only has "
-                      f"{pcoord.shape[2]} dimensions", file=sys.stderr)
-                sys.exit(1)
+                # Check completion
+                seg_index = iter_grp['seg_index'][:]
+                status = seg_index['status']
+                if not np.all(status == 2):
+                    n_incomplete += 1
 
-            # Check completion
-            seg_index = iter_grp['seg_index'][:]
-            status = seg_index['status']
-            if not np.all(status == 2):
-                n_incomplete += 1
+                # Use last timepoint of each segment
+                pcoord_vals = pcoord[:, -1, dim]
+                extrema.append(agg_func(pcoord_vals))
+                iterations.append(iter_num)
 
-            # Use last timepoint of each segment
-            pcoord_vals = pcoord[:, -1, dim]
-            extrema.append(agg_func(pcoord_vals))
-            iterations.append(iter_num)
+            if n_incomplete > 0:
+                print(f"Warning: {n_incomplete} incomplete iteration(s) included", file=sys.stderr)
 
-        if n_incomplete > 0:
-            print(f"Warning: {n_incomplete} incomplete iteration(s) included", file=sys.stderr)
+            iterations = np.array(iterations)
+            extrema = np.array(extrema)
 
-        iterations = np.array(iterations)
-        extrema = np.array(extrema)
+            print(f"Pcoord {label} range: {extrema.min():.4f} to {extrema.max():.4f}")
 
-        print(f"Pcoord {mode} range: {extrema.min():.4f} to {extrema.max():.4f}")
 
-    # Create plot
-    fig, ax = plt.subplots(figsize=(10, 6))
+            ax.plot(iterations, extrema, '-o',  markersize=3, linewidth=1,
+                alpha=0.8, label=label)
 
-    ax.plot(iterations, extrema, '-o', color='steelblue', markersize=3, linewidth=1,
-            alpha=0.8)
-
-    mode_label = 'Minimum' if mode == 'min' else 'Maximum'
+    if mode == 'both':
+        mode_label = "Both Extrema"
+    elif mode == 'min':
+        mode_label = 'Minimum'
+    else:
+        mode_label = 'Maximum'
     ax.set_xlabel('Iteration', fontsize=12)
     ax.set_ylabel(f'{mode_label} Progress Coordinate (dim {dim})', fontsize=12)
     ax.set_title(f'{mode_label} Progress Coordinate vs Iteration\n'
                  f'Iterations {iterations[0]}\u2013{iterations[-1]}', fontsize=14)
     ax.grid(True, alpha=0.3)
-
+    ax.legend()
     plt.tight_layout()
 
     # Determine output path
@@ -177,8 +190,8 @@ Examples:
     )
 
     parser.add_argument('h5_file', help='Path to west.h5 file')
-    parser.add_argument('--mode', '-m', choices=['min', 'max'], default='min',
-                        help='Track minimum or maximum pcoord value (default: min)')
+    parser.add_argument('--mode', '-m', choices=['both', 'min', 'max'], default='both',
+                        help='Track minimum or maximum pcoord value (default: both)')
     parser.add_argument('--dims', '-d', type=int, default=0,
                         help='Pcoord dimension to track (default: 0)')
     parser.add_argument('--first-iter', type=int, default=None,
