@@ -95,12 +95,12 @@ plot_extrema_pcoord.py west.h5 --mode max --output max_pcoord.png
 
 | Option | Description |
 |--------|-------------|
-| `--mode, -m` | 'both', `min` or `max` (default: `both`) |
+| `--mode, -m` | `both`, `min` or `max` (default: `both`) |
 | `--dims, -d` | Pcoord dimension to track (default: 0) |
 | `--first-iter` | First iteration to include (default: first available) |
 | `--last-iter` | Last iteration to include (default: latest complete) |
 | `--output, -o` | Output file path (default: auto-generated) |
-| '--no-fit-curve' | Do not include a line-of-best-fit with each plot
+| `--no-fit-curve` | Do not include a line-of-best-fit with each plot
 ---
 
 ## Notes
